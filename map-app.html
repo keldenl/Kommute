@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>KTraffic Alert</title>
+<style>
+    label {
+        display: block;
+        padding: 5px 0;
+    }
+
+    input[type="text"] {
+        width: 100%;
+    }
+</style>
+</head>
+<body>
+    <h1>KTraffic Alert</h1>
+    <button onclick="autofill('kevinl')">Kevin Default</button>
+    <button onclick="autofill('tiajhan')">Tiajha Default</button>
+    <button onclick="autofill('keldenl')">Kelden Default</button>
+
+    <label>Home <input type="text" id="home" placeholder="Home Address"/></label>
+    <label>Work <input type="text" id="work"  placeholder="Work Address"/></label>
+    <button onclick="getTrafficData(false)">Going to Work</button>
+    <button onclick="getTrafficData(true)">Going Home</button>
+    <div id="output"></div>
+    <p id="last-updated"></p>
+    <script>
+
+
+        var lastUpdated;
+      function autofill(user) {
+          // origin, destination
+          var addressList = {
+              'kevinl': ['35 Amador Village Circle', '345 Potrero Ave'],
+              'keldenl': ['35 Amador Village Circle', '3355 Scott Blvd'],
+              'tiajhan': ['35 Amador Village Circle', '1200 Park Ave Emeryville']
+          }
+
+          document.getElementById("home").value = addressList[user][0];
+          document.getElementById("work").value = addressList[user][1];
+      }
+
+
+      function getTrafficData(isGoingHome) {
+        var origin = document.getElementById("home").value;
+        var destination = document.getElementById("work").value;
+        if (isGoingHome) {
+            var tmp = origin;
+            origin = destination;
+            destination = tmp;
+        }
+
+        var service = new google.maps.DistanceMatrixService;
+        service.getDistanceMatrix({
+          origins: [origin],
+          destinations: [destination],
+          unitSystem: google.maps.UnitSystem.METRIC,
+          travelMode: 'DRIVING',
+          avoidHighways: false,
+          avoidTolls: false,
+          drivingOptions: {
+            departureTime: new Date()
+          }
+        }, function(response, status) {
+          if (status !== 'OK') {
+            alert('Error was: ' + status);
+          } else {
+            var originList = response.originAddresses;
+            var destinationList = response.destinationAddresses;
+            var outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = '';
+
+            // loop through the results
+            for (let result of response.rows) {
+                resultTraffic = result.elements[0].duration_in_traffic;
+                console.log(resultTraffic);
+                document.getElementById("output").innerHTML = resultTraffic.text;
+                lastUpdated = new Date();
+                document.getElementById("last-updated").innerHTML = "Last updated just now";            }
+          }
+        });
+
+        updateTrafficData(isGoingHome);
+      }
+
+        function updateTrafficData(isGoingHome) {
+            var checkTime = setInterval(function() {
+                var currHour = new Date().getHours();
+                var currMin = new Date().getMinutes();
+                var currSec = new Date().getSeconds();
+
+                var lastUpdatedDiff = currMin - lastUpdated.getMinutes();
+                if (lastUpdatedDiff > 0) document.getElementById("last-updated").innerHTML = "Last updated " + lastUpdatedDiff +  " minutes ago";
+                console.log("Update traffic data in: ", 5-(currMin%5), "m");
+                console.log("Update 'last update' in: ", 60 - currSec, "s");
+                console.log("currTime: ", currHour, ":", currMin);
+                console.log("--------------------------------");
+                if (currMin % 5 == 0) {
+                    getTrafficData(isGoingHome);
+                    console.log("Updated!")
+                    clearInterval(checkTime);
+                }
+            }, 1000);
+        }
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBpo4dfZJMmpMOtdxJSD3QLDwszTQ7_Xvw">
+    </script>
+</body>
+</html>
